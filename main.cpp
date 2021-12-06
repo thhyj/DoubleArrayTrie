@@ -8,9 +8,6 @@
 #include <cstring>
 #include <optional>
 
-int ii;
-char qwq[55] = "rpaabliwicegovoydqanwoqnniwacakbnhnqrqqcegpdiwbrvn";
-
 namespace DAT {
     template<typename T>
     struct AutoExpanseVector {
