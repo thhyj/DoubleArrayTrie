@@ -63,14 +63,15 @@ namespace DAT {
             character_set_.swap(temp_set);
         }
 
+        // as EndCharacter wiil be appended, one more sizeof(CharacterType) memory is required!
         void Insert(CharacterType *str, IdType size) {
-
             assert(!is_build_finish_);
             if (size <= 0) {
                 return;
             }
             auto now_node_id = ROOT_ID;
             CharacterType *str_end = str + size;
+            CharacterType origin_end = *str_end;
             (*str_end++) = END_CHARACTER;
             ++size;
             ExpandCharacterSet(str, size);
@@ -97,15 +98,18 @@ namespace DAT {
                     now_node_id = DealWithNoCollision(now_node_id, new_node_id);
                 }
             }
+            (*--str_end) = origin_end;
         }
-
+        // as EndCharacter wiil be appended, one more sizeof(CharacterType) memory is required!
         std::optional<IdType> Find(CharacterType *str, IdType size) {
             CharacterType *str_end = str + size;
+            CharacterType origin_end = *str_end;
             (*str_end++) = END_CHARACTER;
             ++size;
             auto now_node_id = ROOT_ID;
             for (CharacterType *str_left_start = str; str_left_start != str_end; ++str_left_start) {
                 if (IsLeafNode(now_node_id)) {
+                    (*--str_end) = origin_end;
                     return FindWithLeafNode(now_node_id, str_left_start, str_end);
                 } else {
                     const CharacterType &ch = *str_left_start;
@@ -113,10 +117,12 @@ namespace DAT {
                     if (check_[next_node_id] == now_node_id) {
                         now_node_id = next_node_id;
                     } else {
+                        (*--str_end) = origin_end;
                         return std::nullopt;
                     }
                 }
             }
+            (*--str_end) = origin_end;
             return IsLeafNode(now_node_id) ? std::make_optional(now_node_id) : std::nullopt;
         }
 
@@ -436,7 +442,6 @@ void test3() {
     scanf("%d", &n);
     char name[55];
     for (int i = 0; i < n; ++i) {
-        ii = i;
         scanf("%s", name);
         dat.Insert(name, strlen(name));
     }
