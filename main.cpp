@@ -6,6 +6,10 @@
 #include <set>
 #include <cassert>
 #include <cstring>
+#include <optional>
+
+int ii;
+char qwq[55] = "rpaabliwicegovoydqanwoqnniwacakbnhnqrqqcegpdiwbrvn";
 
 namespace DAT {
     template<typename T>
@@ -16,15 +20,19 @@ namespace DAT {
         std::vector<T> vector_;
 
         template<typename ... Args>
-        inline void grow(size_type goal) {
+        void grow(size_type goal) {
             vector_.resize(std::max((vector_.size() << 1), (goal << 1)));
         }
 
-        inline size_type size() {
+        size_type size() {
             return vector_.size();
         }
 
-        inline T &operator[](difference_type i) {
+        T get(difference_type id) {
+            return vector_[id];
+        }
+
+        T &operator[](difference_type i) {
             while (i >= vector_.size()) {
                 grow(i);
             }
@@ -44,6 +52,7 @@ namespace DAT {
         constexpr static IdType ROOT_ID = 1;
         constexpr static IdType CHECK_EMPTY_VALUE = 0;
         constexpr static IdType NULL_ID = -1;
+
         DoubleArrayTrie() : pos_(1) {
             base_[ROOT_ID] = 1;
             check_[ROOT_ID] = 0;
@@ -58,6 +67,7 @@ namespace DAT {
         }
 
         void Insert(CharacterType *str, IdType size) {
+
             assert(!is_build_finish_);
             if (size <= 0) {
                 return;
@@ -69,25 +79,45 @@ namespace DAT {
             ExpandCharacterSet(str, size);
 
             for (CharacterType *str_left_start = str; str_left_start != str_end; ++str_left_start) {
-                std::cout << "now_node_id = " << now_node_id << '\n';
+                if (ii == 233) {
+                    auto ret = Find(qwq, strlen(qwq));
+                    qwq[50] = '\0';
+                    if (!ret) {
+                        //std::cerr << "now_node_id = " << now_node_id << '\n';
+                        //std::cerr << "i = " << ii << " not Found! " << '\n';
+                    }
+                }
                 if (IsLeafNode(now_node_id)) {
-                    std::cout << "is leaf\n";
+                    //std::cout << "is leaf\n";
                     DealWithLeafNode(now_node_id, str_left_start, str_end);
                     break;
                 }
 
                 const CharacterType &ch = *str_left_start;
-                std::cout << "ch = " << (int) ch << '\n';
+                //std::cout << "ch = " << (int) ch << '\n';
                 auto new_node_id = base_[now_node_id] + ch;
-                if (!IsCollision(now_node_id, new_node_id)) {// no collision;
-                    puts("no collision");
+                if (ii == 174) {
+                    //std::cerr << "ch = " << ch << '\n';
+                    //std::cerr << "now_node = " << now_node_id << '\n';
+                    //std::cerr << "new_node = " << new_node_id << '\n';
+                    //std::cerr << "base[152] = " << base_[152] << '\n';
+                    //std::cerr << "check[152] = " << check_[152] << '\n';
+                    //std::cerr << '\n';
+                }
+                // todo 造一个这种数据
+                if (now_node_id == new_node_id) {
+                    new_node_id = DealWithCollisionToMyself(now_node_id, ch);
                     now_node_id = DealWithNoCollision(now_node_id, new_node_id);
-
+                    continue;
+                }
+                if (!IsCollision(now_node_id, new_node_id)) {// no collision;
+                    //puts("no collision");
+                    now_node_id = DealWithNoCollision(now_node_id, new_node_id);
                     continue;
                 } else { // collision !!!
-                    puts("collision");
-                    now_node_id = DealWithCollision(check_[new_node_id],now_node_id , *str_left_start);
-                    std::cout << "new_node_id after collision = " << now_node_id << '\n';
+                    //puts("collision");
+                    now_node_id = DealWithCollision(check_[new_node_id], now_node_id, ch);
+                    //std::cout << "new_node_id after collision = " << now_node_id << '\n';
                     new_node_id = base_[now_node_id] + ch;
                     now_node_id = DealWithNoCollision(now_node_id, new_node_id);
                 }
@@ -105,14 +135,14 @@ namespace DAT {
                 } else {
                     const CharacterType &ch = *str_left_start;
                     const IdType next_node_id = base_[now_node_id] + ch;
-                    if(check_[next_node_id] == now_node_id) {
+                    if (check_[next_node_id] == now_node_id) {
                         now_node_id = next_node_id;
                     } else {
                         return std::nullopt;
                     }
                 }
             }
-            return IsLeafNode(now_node_id) ? std::make_optional(now_node_id)  : std::nullopt;
+            return IsLeafNode(now_node_id) ? std::make_optional(now_node_id) : std::nullopt;
         }
 
         void Print() {
@@ -127,7 +157,7 @@ namespace DAT {
             puts("");
             for (int i = 0; i < check_.size(); ++i) {
                 if (check_[i] != 0) {
-                std::cout << "check[" << i << "] = " << check_[i] << '\n';
+                    std::cout << "check[" << i << "] = " << check_[i] << '\n';
                 }
             }
             puts("");
@@ -138,42 +168,83 @@ namespace DAT {
 
         }
 
-    private:
+    public:
         AutoExpanseVector<IdType> base_, check_;
         AutoExpanseVector<CharacterType> tail_;
         IdType pos_;
         bool is_build_finish_;
         std::set<CharacterType> character_set_; // only can be used when building;
 
-        inline void ExpandCharacterSet(CharacterType *str, IdType size) {
+        void ExpandCharacterSet(CharacterType *str, IdType size) {
             CharacterType *end = str + size;
             for (; str != end; ++str) {
                 character_set_.insert(*str);
             }
         }
 
-        inline bool IsCollision(IdType prev_node_id, IdType new_node_id) {
-            return !(IsNotUsedNodeId(new_node_id) || IsSameCheck(prev_node_id, new_node_id));
+        bool IsCollision(IdType prev_node_id, IdType new_node_id) {
+            if (ii == 174) {
+                //std::cerr << "prev = " << prev_node_id << '\n';
+                //std::cerr << "new = " << new_node_id << '\n';
+                //std::cerr << "check_[new] = " << check_[new_node_id] << "\n\n";
+            }
+            if (IsNotUsedNodeId(new_node_id)) {
+                return false;
+            }
+            if (IsSameCheck(prev_node_id, new_node_id)) {
+                return false;
+            }
+            return true;
+            return !(IsNotUsedNodeId(new_node_id) && !IsSameCheck(prev_node_id, new_node_id));
         }
 
-        inline bool IsSameCheck(IdType prev_node_id, IdType new_node_id) {
+        bool IsSameCheck(IdType prev_node_id, IdType new_node_id) {
             return check_[new_node_id] == prev_node_id;
         }
 
-        inline bool IsNotUsedNodeId(IdType node_id) {
+        bool IsNotUsedNodeId(IdType node_id) {
             return check_[node_id] == CHECK_EMPTY_VALUE;
         }
 
-        inline bool IsLeafNode(IdType node_id) {
+        bool IsLeafNode(IdType node_id) {
             return base_[node_id] <= 0;
         }
 
-        inline IdType DealWithNoCollision(IdType prev_node_id, IdType new_node_id) {
+        IdType DealWithCollisionToMyself(IdType node_id, CharacterType next_character) {
+            std::vector<CharacterType> sons = GetAllSons(node_id);
+            sons.template emplace_back(next_character);
+            IdType new_base = FindFirstCandidate(sons);
+            IdType old_base = base_[node_id];
+            base_[node_id] = new_base;
+            sons.pop_back();
+            for (const auto &son_character : sons) {
+                const IdType old_son = old_base + son_character;
+                const IdType new_son = new_base + son_character;
+                base_[new_son] = base_[old_son];
+                check_[new_son] = check_[old_son];
+
+                if (!IsLeafNode(old_son)) {
+                    const auto sons_of_son = GetAllSons(old_son);
+                    for (const auto &son_of_son : sons_of_son) {
+                        check_[son_of_son + base_[old_son]] = new_son;
+                    }
+                }
+
+                base_[old_son] = 0;
+                check_[old_son] = CHECK_EMPTY_VALUE;
+            }
+            return base_[node_id] + next_character;
+        }
+
+        IdType DealWithNoCollision(IdType prev_node_id, IdType new_node_id) {
+            if (ii == 174) {
+                //std::cerr << "new node id = " << new_node_id << ' ' << " check = " << check_[new_node_id] << '\n';
+            }
             check_[new_node_id] = prev_node_id;
             return new_node_id;
         }
 
-        inline std::vector<CharacterType> GetAllSons(IdType node_id) { // cost a lot of time
+        std::vector<CharacterType> GetAllSons(IdType node_id) { // cost a lot of time
             std::vector<CharacterType> sons;
             const IdType now_base = base_[node_id];
             for (const auto &character : character_set_) {
@@ -184,68 +255,62 @@ namespace DAT {
             return sons;
         }
 
-        inline IdType
+        IdType
         DealWithCollision(IdType prev_node_id, IdType next_node_id,
                           CharacterType next_character) { // CASE 4 Conflict caused by position preemption
             std::vector<CharacterType> sons_of_prev_node = GetAllSons(prev_node_id);
             std::vector<CharacterType> sons_of_new_node = GetAllSons(next_node_id);
+            sons_of_new_node.template emplace_back(next_character);
             bool is_father_and_son = check_[next_node_id] == prev_node_id;
-            puts("son of prev_node");
-            for(auto & son : sons_of_prev_node) {
-                std::cout << (int)son << ' ';
-            }
-            puts("");
-            puts("son of new_node");
-            for(auto & son : sons_of_new_node) {
-                std::cout << (int)son << ' ';
-            }
-            puts("");
+
             const IdType yield_node_id =
-                    sons_of_new_node.size() + 1 >= sons_of_prev_node.size() ? prev_node_id : next_node_id;
+                    sons_of_new_node.size() >= sons_of_prev_node.size() ? prev_node_id : next_node_id;
             const auto &sons_of_yield_node =
-                    sons_of_new_node.size() + 1 >= sons_of_prev_node.size() ? sons_of_prev_node : sons_of_new_node;
-
-            std::cout << "yield node is " << yield_node_id << '\n';
-            puts("son of yield_node");
-            for(auto & son : sons_of_yield_node) {
-                std::cout << (int)son << ' ';
-            }
-            puts("");
-
+                    sons_of_new_node.size() >= sons_of_prev_node.size() ? sons_of_prev_node : sons_of_new_node;
             const IdType old_base = base_[yield_node_id];
             const IdType new_base_candidate = FindFirstCandidate(sons_of_yield_node);
             base_[yield_node_id] = new_base_candidate;
-            const IdType &now_base = base_[yield_node_id];
-            std::cout << "old_base = " << old_base << " now_base = " << now_base << '\n';
+            //std::cout << "old_base = " << old_base << " now_base = " << now_base << '\n';
+            if (check_[base_[next_node_id] + sons_of_new_node.back()] != next_node_id) {
+                sons_of_new_node.pop_back();
+            }
             for (const auto &son : sons_of_yield_node) {
+                if (ii == 174) {
+                    //std::cerr << "ii = " << ii << '\n';
+                    //std::cerr << "son = " << son << '\n';
+                    //std::cerr << "base_[old_node] = " << base_[old_base + son] << std::endl;
+                }
                 const IdType old_node = old_base + son;
-                const IdType new_node = now_base + son;
-                std::cout << "son = " << (int)son << " old_node = " << old_node << " new_node = " << new_node << '\n';
+                const IdType new_node = base_[yield_node_id] + son;
+                //std::cout << "son = " << (int)son << " old_node = " << old_node << " new_node = " << new_node << '\n';
                 base_[new_node] = base_[old_node];
                 check_[new_node] = check_[old_node];
 
                 if (!IsLeafNode(old_node)) {
                     std::vector<CharacterType> sons_of_old_node = GetAllSons(old_node);
-                    for(const auto & son_of_old_node : sons_of_old_node) {
-                        check_[base_[old_node] + son_of_old_node] = new_node;
+                    for (const auto &son_of_old_node : sons_of_old_node) {
+                        IdType son_node = base_[old_node] + son_of_old_node;
+                        check_[son_node] = new_node;
                     }
                 }
+
                 base_[old_node] = 0;
                 check_[old_node] = CHECK_EMPTY_VALUE;
+
             }
-            if(is_father_and_son && yield_node_id == prev_node_id) {
+            if (is_father_and_son && yield_node_id == prev_node_id) {
                 return next_node_id + new_base_candidate - old_base;
             }
             return next_node_id;
         }
 
-        inline void SaveToTail(const std::vector<CharacterType> &str, IdType tail_start_pos) {
+        void SaveToTail(const std::vector<CharacterType> &str, IdType tail_start_pos) {
             for (IdType i = 0; i < str.size(); ++i) {
                 tail_[tail_start_pos + i] = str[i];
             }
         }
 
-        inline void SaveToTail(CharacterType *str_begin, CharacterType *str_end, IdType tail_start_pos) {
+        void SaveToTail(CharacterType *str_begin, CharacterType *str_end, IdType tail_start_pos) {
             if (str_begin >= str_end) {
                 return;
             }
@@ -256,7 +321,7 @@ namespace DAT {
         }
 
 
-        inline std::optional<IdType> FindWithLeafNode(IdType node_id, CharacterType *str_begin, CharacterType *str_end) {
+        std::optional<IdType> FindWithLeafNode(IdType node_id, CharacterType *str_begin, CharacterType *str_end) {
             if (str_begin >= str_end) {
                 return node_id;
             }
@@ -266,12 +331,13 @@ namespace DAT {
                 return std::nullopt;
             }
         }
-        inline void DealWithLeafNode(IdType node_id, CharacterType *str_begin, CharacterType *str_end) {
+
+        void DealWithLeafNode(IdType node_id, CharacterType *str_begin, CharacterType *str_end) {
             if (str_begin >= str_end) {
                 return;
             }
             const IdType length = str_end - str_begin;
-            std::cout << "node_id = " << node_id << '\n';
+            //std::cout << "node_id = " << node_id << '\n';
             if (base_[node_id] == 0) { // no collision
                 SaveToTail(str_begin, str_end, pos_);
                 base_[node_id] = -pos_;
@@ -325,7 +391,7 @@ namespace DAT {
             }
         }
 
-        inline bool IsStringEqual(CharacterType *str_begin, CharacterType *str_end, IdType tail_start) {
+        bool IsStringEqual(CharacterType *str_begin, CharacterType *str_end, IdType tail_start) {
             const IdType length = str_end - str_begin;
             for (IdType i = 0; i < length; ++i) {
                 if (tail_[tail_start + i] == END_CHARACTER) {
@@ -338,7 +404,7 @@ namespace DAT {
             return true;
         }
 
-        inline IdType FindFirstCandidate(std::vector<CharacterType> character_list) { // X_CHECK函数
+        IdType FindFirstCandidate(std::vector<CharacterType> character_list) { // X_CHECK函数
             for (IdType q = 1;; ++q) {
                 for (const auto character : character_list) {
                     if (check_[q + character] != 0) {
@@ -351,7 +417,7 @@ namespace DAT {
             }
         }
 
-        inline IdType FindFirstCandidate(CharacterType character) { // X_CHECK函数
+        IdType FindFirstCandidate(CharacterType character) { // X_CHECK函数
             for (IdType q = 1;; ++q) {
                 if (check_[q + character] == 0) {
                     return q;
@@ -362,16 +428,16 @@ namespace DAT {
 }
 
 template<typename CharacterType, typename IdType>
-inline void TestFind(DAT::DoubleArrayTrie<CharacterType>&  a, CharacterType *str, IdType size) {
+void TestFind(DAT::DoubleArrayTrie<CharacterType> &a, CharacterType *str, IdType size) {
     auto result = a.Find(str, size);
-    if(!result) {
+    if (!result) {
         std::cout << "Not found \n";
     } else {
         std::cout << "Found at id " << result.value() << '\n';
     }
 }
 
-inline void test1() {
+void test1() {
     DAT::DoubleArrayTrie<char> a;
     std::vector<char> str1{3, 2, 4, 9, 6, 13, 16, 19}; //bachelor
     a.Insert(&str1[0], str1.size());
@@ -399,7 +465,7 @@ inline void test1() {
 
 };
 
-inline void test2() {
+void test2() {
     DAT::DoubleArrayTrie<char> a;
     std::vector<char> str1{3, 2}; //ba
     a.Insert(&str1[0], str1.size());
@@ -416,7 +482,7 @@ inline void test2() {
     TestFind(a, &str1[0], str1.size());
     TestFind(a, &str2[0], str2.size());
     TestFind(a, &str3[0], str3.size());
-    std::vector<char> str4{3, 2, 6,6,6}; //baeee
+    std::vector<char> str4{3, 2, 6, 6, 6}; //baeee
     a.Insert(&str4[0], str4.size());
     a.Print();
     TestFind(a, &str1[0], str1.size());
@@ -426,26 +492,57 @@ inline void test2() {
 
 }
 
-inline void test3() {
+DAT::DoubleArrayTrie<char> dat;
+
+void test3() {
+    //   freopen("in.in", "r", stdin);
+    //   freopen("out.out", "w", stdout);
     int n;
     scanf("%d", &n);
-    DAT::DoubleArrayTrie<char> dat;
     char name[55];
-    for(int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
+        // //std::cerr << "i = " << i << '\n';
+        //  //std::cerr << "base[152] = " << dat.base_[152] << '\n';
+        if (i == 939) {
+            //std::cerr << "233\n";
+            int t = 3;
+        }
+        if (i == 527) {
+            //std::cerr << "233\n";
+            int t = 3;
+        }
+        ii = i;
         scanf("%s", name);
         dat.Insert(name, strlen(name));
+        if (i >= 43) {
+            auto ret = dat.Find(qwq, strlen(qwq));
+            qwq[50] = '\0';
+            if (!ret) {
+                //std::cerr << "i = " << i << " not Found! " << '\n';
+            }
+        }
+        if (n != 1000) {
+            //std::cerr << "i = " << i << " n change !!!!\n";
+        }
     }
     int m;
     scanf("%d", &m);
     std::set<int> finded;
-    for(int i = 0; i < m; ++i) {
+    auto ret = dat.Find(qwq, strlen(qwq));
+    qwq[50] = '\0';
+
+    if (!ret) {
+        //std::cerr << "i = " << 10001 << " not Found! " << '\n';
+    }
+    for (int i = 0; i < m; ++i) {
+
         scanf("%s", name);
-        auto ret =  dat.Find(name, strlen(name));
-        if(!ret) {
+        auto ret = dat.Find(name, strlen(name));
+        if (!ret) {
             puts("WRONG");
         } else {
-            std::cout <<"ret = " << ret.value() << '\n';
-            if(finded.find(ret.value()) == finded.end()) {
+            //std::cout <<"ret = " << ret.value() << '\n';
+            if (finded.find(ret.value()) == finded.end()) {
                 finded.insert(ret.value());
                 puts("OK");
             } else {
@@ -455,9 +552,23 @@ inline void test3() {
     }
 }
 
+void test4() {
+    DAT::DoubleArrayTrie<char> a;
+    std::vector<char> str1{3, 3, 3}; //bbb
+    a.Insert(&str1[0], str1.size());
+    a.Print();
+    TestFind(a, &str1[0], str1.size());
+    std::vector<char> str2{3, 3}; //bb
+    a.Insert(&str2[0], str2.size());
+    a.Print();
+    TestFind(a, &str1[0], str1.size());
+    TestFind(a, &str2[0], str2.size());
+}
+
 int main() {
-   // test1();
-   // test2();
-   test3();
+    //test1();
+    // test2();
+    test3();
+    // test4();
     return 0;
 }
